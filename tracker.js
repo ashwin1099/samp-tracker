@@ -1,5 +1,6 @@
 const { MongoClient } = require('mongodb');
 const samp = require('samp-query');
+const express = require('express');  // Express for health check
 
 const MONGO_URI = 'mongodb+srv://vg-bot:ashwinjr10@vg-bot.eypjth3.mongodb.net/?retryWrites=true&w=majority&appName=vG-Bot';
 const DB_NAME = 'valiant';
@@ -9,6 +10,19 @@ let client;
 let playtimeCollection;
 let resetDoneToday = false; // 🧠 Prevent multiple resets at midnight
 
+// Create an Express app for the health check endpoint
+const app = express();
+const PORT = process.env.PORT || 8000;
+
+app.get('/health', (req, res) => {
+    res.status(200).send('App is running');
+});
+
+app.listen(PORT, () => {
+    console.log(`Health check server running on port ${PORT}`);
+});
+
+// Connect to MongoDB
 async function connectToMongoDB() {
     try {
         client = new MongoClient(MONGO_URI);
@@ -22,6 +36,7 @@ async function connectToMongoDB() {
     }
 }
 
+// Query the SA-MP server
 function querySAMP(options) {
     return new Promise((resolve, reject) => {
         samp(options, (error, response) => {
@@ -32,6 +47,7 @@ function querySAMP(options) {
 }
 
 connectToMongoDB().then(() => {
+    // Set interval to check every minute
     setInterval(async () => {
         const options = {
             host: '163.172.105.21',
@@ -65,6 +81,7 @@ connectToMongoDB().then(() => {
         }
     }, 60000); // Every minute
 
+    // Set interval to check and reset data every day at 00:00 UK time
     setInterval(async () => {
         const now = new Date();
         const londonTime = new Date(
@@ -75,7 +92,7 @@ connectToMongoDB().then(() => {
         const minutes = londonTime.getMinutes();
         const seconds = londonTime.getSeconds();
 
-        // ✅ Run reset once at 00:00:00 UK time
+        // Run reset once at 00:00:00 UK time
         if (hours === 0 && minutes === 0 && seconds === 0 && !resetDoneToday) {
             try {
                 await playtimeCollection.deleteMany({});
@@ -86,7 +103,7 @@ connectToMongoDB().then(() => {
             }
         }
 
-        // 🔁 Reset the flag at 00:01 so it's ready for the next day
+        // Reset the flag at 00:01 so it's ready for the next day
         if (hours === 0 && minutes === 1 && resetDoneToday) {
             resetDoneToday = false;
         }

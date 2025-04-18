@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "express": "^5.1.0",
     "mongodb": "^6.15.0",
     "samp-query": "^0.1.5"
   }
